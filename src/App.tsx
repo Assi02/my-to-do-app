@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import About from './About'
 
 interface Todo {
   text: string
   done: boolean
 }
 
-function App() {
+function Home() {
   const [todos, setTodos] = useState<Todo[]>(() => {
     const saved = localStorage.getItem('todos')
     return saved ? JSON.parse(saved) : [
@@ -44,10 +46,7 @@ function App() {
           placeholder="Type a task..."
           style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #ccc', fontSize: 16 }}
         />
-        <button
-          onClick={addTodo}
-          style={{ padding: '10px 16px', borderRadius: 8, background: '#6c63ff', color: 'white', border: 'none', cursor: 'pointer', fontSize: 16 }}
-        >Add</button>
+        <button onClick={addTodo} style={{ padding: '10px 16px', borderRadius: 8, background: '#6c63ff', color: 'white', border: 'none', cursor: 'pointer', fontSize: 16 }}>Add</button>
       </div>
       <ul style={{ listStyle: 'none', padding: 0 }}>
         {todos.map((todo, i) => (
@@ -59,10 +58,20 @@ function App() {
           </li>
         ))}
       </ul>
-      <p style={{ textAlign: 'center', color: '#aaa', fontSize: 14 }}>
-        {todos.filter(t => !t.done).length} tasks remaining
-      </p>
+      <p style={{ textAlign: 'center', color: '#aaa', fontSize: 14 }}>{todos.filter(t => !t.done).length} tasks remaining</p>
+      <p style={{ textAlign: 'center' }}><Link to="/about" style={{ color: '#6c63ff' }}>About this app →</Link></p>
     </div>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
