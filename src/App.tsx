@@ -1,38 +1,44 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { supabase } from './supabase'
 import About from './About'
 
 interface Todo {
+  id: string
   text: string
   done: boolean
 }
 
 function Home() {
-  const [todos, setTodos] = useState<Todo[]>(() => {
-    const saved = localStorage.getItem('todos')
-    return saved ? JSON.parse(saved) : [
-      { text: 'Buy milk', done: false },
-      { text: 'Learn React', done: false }
-    ]
-  })
+  const [todos, setTodos] = useState<Todo[]>([])
   const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    localStorage.setItem('todos', JSON.stringify(todos))
-  }, [todos])
+    fetchTodos()
+  }, [])
 
-  function addTodo() {
+  async function fetchTodos() {
+    const { data } = await supabase.from('todos').select('*').order('created_at')
+    if (data) setTodos(data)
+    setLoading(false)
+  }
+
+  async function addTodo() {
     if (input.trim() === '') return
-    setTodos([...todos, { text: input, done: false }])
+    const { data } = await supabase.from('todos').insert({ text: input, done: false }).select()
+    if (data) setTodos([...todos, data[0]])
     setInput('')
   }
 
-  function toggleTodo(i: number) {
-    setTodos(todos.map((t, idx) => idx === i ? { ...t, done: !t.done } : t))
+  async function toggleTodo(todo: Todo) {
+    await supabase.from('todos').update({ done: !todo.done }).eq('id', todo.id)
+    setTodos(todos.map(t => t.id === todo.id ? { ...t, done: !t.done } : t))
   }
 
-  function deleteTodo(i: number) {
-    setTodos(todos.filter((_, idx) => idx !== i))
+  async function deleteTodo(id: string) {
+    await supabase.from('todos').delete().eq('id', id)
+    setTodos(todos.filter(t => t.id !== id))
   }
 
   return (
@@ -48,16 +54,17 @@ function Home() {
         />
         <button onClick={addTodo} style={{ padding: '10px 16px', borderRadius: 8, background: '#6c63ff', color: 'white', border: 'none', cursor: 'pointer', fontSize: 16 }}>Add</button>
       </div>
+      {loading ? <p style={{ textAlign: 'center' }}>Loading...</p> :
       <ul style={{ listStyle: 'none', padding: 0 }}>
-        {todos.map((todo, i) => (
-          <li key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', marginBottom: 8, borderRadius: 8, background: todo.done ? '#f0f0f0' : 'white', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
-            <span onClick={() => toggleTodo(i)} style={{ textDecoration: todo.done ? 'line-through' : 'none', color: todo.done ? '#aaa' : '#333', cursor: 'pointer', fontSize: 16 }}>
+        {todos.map((todo) => (
+          <li key={todo.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', marginBottom: 8, borderRadius: 8, background: todo.done ? '#f0f0f0' : 'white', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
+            <span onClick={() => toggleTodo(todo)} style={{ textDecoration: todo.done ? 'line-through' : 'none', color: todo.done ? '#aaa' : '#333', cursor: 'pointer', fontSize: 16 }}>
               {todo.done ? '✅' : '⬜'} {todo.text}
             </span>
-            <button onClick={() => deleteTodo(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18 }}>❌</button>
+            <button onClick={() => deleteTodo(todo.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18 }}>❌</button>
           </li>
         ))}
-      </ul>
+      </ul>}
       <p style={{ textAlign: 'center', color: '#aaa', fontSize: 14 }}>{todos.filter(t => !t.done).length} tasks remaining</p>
       <p style={{ textAlign: 'center' }}><Link to="/about" style={{ color: '#6c63ff' }}>About this app →</Link></p>
     </div>
